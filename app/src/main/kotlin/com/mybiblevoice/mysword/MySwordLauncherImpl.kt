@@ -14,6 +14,12 @@ import com.mybiblevoice.domain.bible.BibleReference
  * 24 call for real-device verification), falls back to a generic app launch rather than
  * failing outright; it never silently substitutes a different translation.
  */
+/**
+ * [context] here is the applicationContext (not an Activity), so every launched Intent MUST
+ * carry FLAG_ACTIVITY_NEW_TASK - without it, startActivity() throws
+ * AndroidRuntimeException("Calling startActivity() from outside of an Activity context
+ * requires the FLAG_ACTIVITY_NEW_TASK flag") the moment this actually runs.
+ */
 class MySwordLauncherImpl(private val context: Context) : MySwordLauncher {
 
     private val linkComponent = ComponentName(
@@ -29,6 +35,7 @@ class MySwordLauncherImpl(private val context: Context) : MySwordLauncher {
         val exactIntent = Intent().apply {
             component = linkComponent
             data = Uri.parse(MySwordUriBuilder.buildUri(reference))
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         try {
             context.startActivity(exactIntent)
@@ -38,6 +45,7 @@ class MySwordLauncherImpl(private val context: Context) : MySwordLauncher {
         }
 
         val genericIntent = context.packageManager.getLaunchIntentForPackage(MySwordAvailability.PACKAGE_ID)
+            ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
             ?: return LaunchResult.Failed("MySword is installed but could not be launched.")
 
         return try {
