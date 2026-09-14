@@ -1,0 +1,5 @@
+<resources>
+    <!-- The app UI is entirely Jetpack Compose; this only needs to be a valid
+         platform theme parent for the manifest/launch window. -->
+    <style name="Theme.MyBibleVoice" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
