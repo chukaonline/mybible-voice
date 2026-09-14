@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface SpeechRecognizer {
     val state: StateFlow<SpeechState>
-    fun startListening()
+
+    /** @param languageTag a BCP-47 tag (e.g. "en-US") - the user's speech-recognition language preference. */
+    fun startListening(languageTag: String)
     fun stopListening()
 }

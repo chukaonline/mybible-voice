@@ -30,6 +30,10 @@ object TranslationRegistry {
         }
     }
 
+    private val idMap: Map<String, Translation> = translations.associateBy { it.id }
+
+    fun findById(id: String): Translation? = idMap[id]
+
     /**
      * Looks for a translation alias at the END of [tokens] (the doc's examples always place
      * the translation last, e.g. "John 3:16 NLT"), preferring the longest alias.

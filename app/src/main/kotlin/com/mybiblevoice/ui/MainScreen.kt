@@ -10,9 +10,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,8 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: MainViewModel) {
+fun MainScreen(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var permissionDenied by remember { mutableStateOf(false) }
@@ -42,76 +50,87 @@ fun MainScreen(viewModel: MainViewModel) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("MyBible Voice", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(32.dp))
-
-        Button(onClick = {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-            if (hasPermission) {
-                viewModel.onMicTapped()
-            } else {
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }) {
-            Text("🎤 Tap to Speak")
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        Text(
-            when (uiState.status) {
-                ListeningStatus.LISTENING -> "Listening…"
-                ListeningStatus.PROCESSING -> "Processing…"
-                ListeningStatus.IDLE -> "Speak a Bible reference, e.g. \"John 3:16\""
-            }
-        )
-
-        if (uiState.recognizedText.isNotBlank()) {
-            Spacer(Modifier.height(16.dp))
-            Text("Heard: \"${uiState.recognizedText}\"")
-        }
-
-        uiState.lastSuccessfulReference?.let { reference ->
-            Spacer(Modifier.height(8.dp))
-            val verses = when {
-                reference.startVerse == null -> ""
-                reference.endVerse == null -> ":${reference.startVerse}"
-                else -> ":${reference.startVerse}-${reference.endVerse}"
-            }
-            val translation = reference.translation?.let { " (${it.name})" } ?: ""
-            Text("Opening ${reference.book.canonicalName} ${reference.chapter}$verses$translation")
-        }
-
-        uiState.launchNote?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.tertiary)
-        }
-
-        uiState.ambiguousMessage?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.tertiary)
-        }
-
-        uiState.errorMessage?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.error)
-        }
-
-        if (permissionDenied) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Microphone permission is required to use voice navigation.",
-                color = MaterialTheme.colorScheme.error
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("MyBible Voice") },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    }
+                }
             )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Button(onClick = {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+                if (hasPermission) {
+                    viewModel.onMicTapped()
+                } else {
+                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            }) {
+                Text("🎤 Tap to Speak")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                when (uiState.status) {
+                    ListeningStatus.LISTENING -> "Listening…"
+                    ListeningStatus.PROCESSING -> "Processing…"
+                    ListeningStatus.IDLE -> "Speak a Bible reference, e.g. \"John 3:16\""
+                }
+            )
+
+            if (uiState.recognizedText.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                Text("Heard: \"${uiState.recognizedText}\"")
+            }
+
+            uiState.lastSuccessfulReference?.let { reference ->
+                Spacer(Modifier.height(8.dp))
+                val verses = when {
+                    reference.startVerse == null -> ""
+                    reference.endVerse == null -> ":${reference.startVerse}"
+                    else -> ":${reference.startVerse}-${reference.endVerse}"
+                }
+                val translation = reference.translation?.let { " (${it.name})" } ?: ""
+                Text("Opening ${reference.book.canonicalName} ${reference.chapter}$verses$translation")
+            }
+
+            uiState.launchNote?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, color = MaterialTheme.colorScheme.tertiary)
+            }
+
+            uiState.ambiguousMessage?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, color = MaterialTheme.colorScheme.tertiary)
+            }
+
+            uiState.errorMessage?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+
+            if (permissionDenied) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Microphone permission is required to use voice navigation.",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

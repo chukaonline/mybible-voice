@@ -19,7 +19,7 @@ class SpeechRecognizerImpl(private val context: Context) : SpeechRecognizer {
 
     private var recognizer: AndroidSpeechRecognizer? = null
 
-    override fun startListening() {
+    override fun startListening(languageTag: String) {
         if (!AndroidSpeechRecognizer.isRecognitionAvailable(context)) {
             _state.value = SpeechState.Error("Speech recognition is not available on this device.")
             return
@@ -33,6 +33,7 @@ class SpeechRecognizerImpl(private val context: Context) : SpeechRecognizer {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
         }
         _state.value = SpeechState.Listening
         newRecognizer.startListening(intent)
