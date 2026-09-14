@@ -4,30 +4,38 @@ import com.mybiblevoice.domain.bible.BibleBookRegistry
 import com.mybiblevoice.domain.bible.BibleReference
 
 /**
- * Converts a [BibleReference] into MySword's documented external-link URI:
- * "https://mysword.info/b?r=<book>.<chapter>[.<verse>[-<endVerse>]][/<translationCode>]"
- * using the numeric book.chapter.verse form (book number = canonical 1-Genesis..66-Revelation
- * position, confirmed against MySword's own documented examples "19.37.3-6" = Psalms 37:3-6
- * and "43.3.16" = John 3:16 - see SRS section 24 references).
+ * Converts a [BibleReference] into MySword's documented external-link URI
+ * (mysword.info/news/220-link-or-open-mysword-from-other-apps).
  *
- * [Translation.myswordCode] values are best-effort defaults and, per the technical design,
- * must be verified against a real MySword installation during integration testing.
+ * Two different reference forms are needed, both verified against a real MySword install:
+ * - No translation requested: the numeric "book.chapter.verse[-endVerse]" form (book number =
+ *   canonical 1-Genesis..66-Revelation position). Reliable and needs no book-abbreviation table.
+ * - Translation requested: the text "BookCode_chapter_verse[-endVerse]/TRANSLATION" form.
+ *   The numeric form does NOT combine correctly with a "/TRANSLATION" suffix - appending one
+ *   silently dropped both the verse and the requested translation when tested for real.
  */
 object MySwordUriBuilder {
 
     private const val BASE_URL = "https://mysword.info/b?r="
 
     fun buildUri(reference: BibleReference): String {
-        val bookNumber = BibleBookRegistry.books.indexOf(reference.book) + 1
-        check(bookNumber > 0) { "Book ${reference.book.id} is not in the canonical registry." }
+        val translation = reference.translation
+        val bookCode = translation?.let { MySwordBookCodes.codeFor(reference.book.id) }
 
-        val versePart = when {
-            reference.startVerse == null -> ""
-            reference.endVerse == null -> ".${reference.startVerse}"
-            else -> ".${reference.startVerse}-${reference.endVerse}"
+        return if (translation != null && bookCode != null) {
+            val versePart = versePart(reference, separator = "_")
+            "$BASE_URL${bookCode}_${reference.chapter}$versePart/${translation.myswordCode.uppercase()}"
+        } else {
+            val bookNumber = BibleBookRegistry.books.indexOf(reference.book) + 1
+            check(bookNumber > 0) { "Book ${reference.book.id} is not in the canonical registry." }
+            val versePart = versePart(reference, separator = ".")
+            "$BASE_URL$bookNumber.${reference.chapter}$versePart"
         }
-        val translationSuffix = reference.translation?.let { "/${it.myswordCode}" } ?: ""
+    }
 
-        return "$BASE_URL$bookNumber.${reference.chapter}$versePart$translationSuffix"
+    private fun versePart(reference: BibleReference, separator: String): String = when {
+        reference.startVerse == null -> ""
+        reference.endVerse == null -> "$separator${reference.startVerse}"
+        else -> "$separator${reference.startVerse}-${reference.endVerse}"
     }
 }

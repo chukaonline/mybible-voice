@@ -29,10 +29,31 @@ class MySwordUriBuilderTest {
     }
 
     @Test
-    fun `translation is appended as a suffix`() {
-        val nlt = TranslationRegistry.translations.first { it.id == "nlt" }
-        val reference = BibleReference(book = book("john"), chapter = 3, startVerse = 16, translation = nlt)
-        assertEquals("https://mysword.info/b?r=43.3.16/nlt", MySwordUriBuilder.buildUri(reference))
+    fun `a requested translation switches to the text book-code form`() {
+        // Confirmed against a real MySword install: the numeric form silently drops both the
+        // verse and the translation when a "/TRANSLATION" suffix is appended to it, so a
+        // translation request must use "BookCode_chapter_verse/TRANSLATION" instead.
+        val kjv = TranslationRegistry.translations.first { it.id == "kjv" }
+        val reference = BibleReference(book = book("john"), chapter = 3, startVerse = 16, translation = kjv)
+        assertEquals("https://mysword.info/b?r=Joh_3_16/KJV", MySwordUriBuilder.buildUri(reference))
+    }
+
+    @Test
+    fun `a requested translation on a numbered book uses its 3-letter code`() {
+        val kjv = TranslationRegistry.translations.first { it.id == "kjv" }
+        val reference = BibleReference(
+            book = book("1_corinthians"), chapter = 9, startVerse = 23, translation = kjv
+        )
+        assertEquals("https://mysword.info/b?r=1Co_9_23/KJV", MySwordUriBuilder.buildUri(reference))
+    }
+
+    @Test
+    fun `a requested translation with a verse range uses the text form`() {
+        val kjv = TranslationRegistry.translations.first { it.id == "kjv" }
+        val reference = BibleReference(
+            book = book("psalms"), chapter = 37, startVerse = 3, endVerse = 6, translation = kjv
+        )
+        assertEquals("https://mysword.info/b?r=Psa_37_3-6/KJV", MySwordUriBuilder.buildUri(reference))
     }
 
     @Test
