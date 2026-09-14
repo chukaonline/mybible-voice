@@ -36,6 +36,20 @@ class BibleBookRegistryTest {
     }
 
     @Test
+    fun `matches speech-recognizer ordinal form like 1st corinthians`() {
+        // Android's speech recognizer commonly transcribes "First Corinthians" as "1st corinthians".
+        val (book, consumed) = BibleBookRegistry.matchAtStart(listOf("1st", "corinthians", "9"))!!
+        assertEquals("1 Corinthians", book.canonicalName)
+        assertEquals(2, consumed)
+    }
+
+    @Test
+    fun `matches 2nd and 3rd ordinal forms`() {
+        assertEquals("2 Peter", BibleBookRegistry.matchAtStart(listOf("2nd", "peter", "1"))!!.first.canonicalName)
+        assertEquals("3 John", BibleBookRegistry.matchAtStart(listOf("3rd", "john", "1"))!!.first.canonicalName)
+    }
+
+    @Test
     fun `psalm singular alias resolves to canonical Psalms`() {
         val (book, consumed) = BibleBookRegistry.matchAtStart(listOf("psalm", "23"))!!
         assertEquals("Psalms", book.canonicalName)

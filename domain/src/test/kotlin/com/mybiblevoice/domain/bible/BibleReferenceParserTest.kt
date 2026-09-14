@@ -68,6 +68,10 @@ class BibleReferenceParserTest {
     @Test
     fun `Open Genesis 1-1`() = assertReference("Open Genesis 1:1", "Genesis", 1, 1)
 
+    @Test
+    fun `1st Corinthians 9-23 - speech-recognizer ordinal transcription`() =
+        assertReference("1st Corinthians 9:23", "1 Corinthians", 9, 23)
+
     // --- Negative / error cases ---
 
     @Test

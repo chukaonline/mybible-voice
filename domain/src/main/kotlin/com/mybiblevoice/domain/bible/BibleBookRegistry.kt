@@ -141,12 +141,16 @@ object BibleBookRegistry {
         put("revelation", listOf("rev", "revelations"))
     }
 
-    /** Expands a numbered book's rest-of-name into "1 samuel" / "first samuel" / "one samuel" style aliases. */
+    /**
+     * Expands a numbered book's rest-of-name into "1 samuel" / "first samuel" / "one samuel"
+     * style aliases. Includes "1st"/"2nd"/"3rd" because Android's speech recognizer commonly
+     * transcribes the spoken ordinal "first"/"second"/"third" as that digit+suffix form.
+     */
     private fun numbered(n: Int, restFull: String, restAbbrevs: List<String> = emptyList()): List<String> {
         val prefixes = when (n) {
-            1 -> listOf("1", "first", "one")
-            2 -> listOf("2", "second", "two")
-            3 -> listOf("3", "third", "three")
+            1 -> listOf("1", "1st", "first", "one")
+            2 -> listOf("2", "2nd", "second", "two")
+            3 -> listOf("3", "3rd", "third", "three")
             else -> error("Unsupported book number: $n")
         }
         val names = listOf(restFull) + restAbbrevs
