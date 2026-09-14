@@ -6,7 +6,7 @@
     <!-- Package visibility (Android 11+): needed to detect/launch MySword and to use
          on-device speech recognition services. -->
     <queries>
-        <package android:name="mysword" />
+        <package android:name="com.riversoft.android.mysword" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>

@@ -91,6 +91,11 @@ fun MainScreen(viewModel: MainViewModel) {
             Text("Opening ${reference.book.canonicalName} ${reference.chapter}$verses$translation")
         }
 
+        uiState.launchNote?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, color = MaterialTheme.colorScheme.tertiary)
+        }
+
         uiState.ambiguousMessage?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.tertiary)

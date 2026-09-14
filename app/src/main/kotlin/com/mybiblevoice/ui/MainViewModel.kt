@@ -71,7 +71,15 @@ class MainViewModel(
 
     private fun launchMySword(reference: BibleReference) {
         when (val launchResult = mySwordLauncher.open(reference)) {
-            is LaunchResult.Launched -> Unit
+            is LaunchResult.Launched -> _uiState.update {
+                it.copy(
+                    launchNote = if (launchResult.exactPassage) {
+                        null
+                    } else {
+                        "Opened MySword, but could not navigate to the exact passage on this MySword version."
+                    }
+                )
+            }
             LaunchResult.NotInstalled -> _uiState.update {
                 it.copy(errorMessage = "MySword is required but is not installed.")
             }

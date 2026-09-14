@@ -33,6 +33,7 @@ android {
     }
 
     sourceSets["main"].kotlin.srcDirs("src/main/kotlin")
+    sourceSets["test"].kotlin.srcDirs("src/test/kotlin")
 
     packaging {
         resources.excludes.add("/META-INF/{AL2.0,LGPL2.1}")

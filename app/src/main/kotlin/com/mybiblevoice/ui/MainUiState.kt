@@ -9,5 +9,6 @@ data class MainUiState(
     val recognizedText: String = "",
     val lastSuccessfulReference: BibleReference? = null,
     val ambiguousMessage: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val launchNote: String? = null
 )
