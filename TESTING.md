@@ -116,15 +116,17 @@ Open Settings (gear icon, top right):
 | Spoken-number parser implemented and tested | Done, unit-tested |
 | Reference parser and validator implemented and tested | Done, unit-tested |
 | Parser tests pass without a device | Done (`:domain` is pure JVM Kotlin) |
-| Speech recognition supplies text to parser | Wired and running; **needs this checklist's section 5 for final confirmation** |
-| Valid references generate a verified MySword launch request | Done — confirmed against the real MySword app on the emulator (Phase 3) |
-| MySword opens the requested passage on a real Android device | **This checklist's section 5 is the remaining step** |
+| Speech recognition supplies text to parser | **Done — confirmed on a real Android device** (2026-09-16) |
+| Valid references generate a verified MySword launch request | Done — confirmed against the real MySword app on the emulator (Phase 3) and on a real device |
+| MySword opens the requested passage on a real Android device | **Done — confirmed** (2026-09-16): positive, negative, and settings tests all passed |
 | Requested translations are never silently replaced | Done by design (code never substitutes; verified by reading `MainViewModel`/`MySwordLauncherImpl`) |
-| Missing MySword and invalid/ambiguous references are handled clearly | Done, unit-tested + emulator-verified; **section 6 confirms real-device behavior** |
+| Missing MySword and invalid/ambiguous references are handled clearly | Done, unit-tested + emulator-verified + real-device-verified |
 
-Everything is ready for this pass — the two rows above marked "needs this checklist" are the
-only ones an emulator structurally cannot close out, since they need a real microphone and
-Google's real on-device speech service.
+All rows closed as of 2026-09-16. Three bugs turned up during real-device testing and were
+fixed along the way (see commit history): a missing `FLAG_ACTIVITY_NEW_TASK` that crashed the
+app on first successful recognition, speech-transcribed ordinals ("1st Corinthians") not
+matching the book registry, and the preferred-translation setting being silently ignored by
+MySword's numeric URI form. All three have regression tests.
 
 ## If something fails
 
