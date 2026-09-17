@@ -9,11 +9,16 @@ all Bible text, reading, and study functionality.
 "John three sixteen"  -->  MySword opens at John 3:16
 ```
 
+## Download
+
+Grab the latest APK from the [Releases page](https://github.com/chukaonline/mybible-voice/releases/latest)
+and install it on your Android phone. [MySword](https://www.mysword.info/) must already be
+installed (from Google Play) with at least one Bible module downloaded.
+
 ## Status
 
 **v0.1 complete**, verified end-to-end on a real Android device — positive references, negative/
-error cases, and settings persistence all passing. See [TESTING.md](TESTING.md) for the full test
-script and a line-by-line Definition-of-Done crosswalk.
+error cases, and settings persistence all passing.
 
 ## How it works
 
@@ -52,33 +57,3 @@ domain (com.mybiblevoice.domain)/
 ├── parser/        SpokenNumberParser, TextNormalizer, ParserResult
 └── translation/    Translation, TranslationRegistry
 ```
-
-## Requirements
-
-- JDK 17
-- Android SDK (compileSdk 34, minSdk 24) — the Gradle wrapper handles the rest
-- [MySword](https://www.mysword.info/) installed on the target device, with at least one Bible
-  module downloaded
-
-## Build & test
-
-```bash
-./gradlew :domain:test              # parser/domain unit tests (no device needed)
-./gradlew :app:testDebugUnitTest    # app-module unit tests (URI building, etc.)
-./gradlew :app:assembleDebug        # build the debug APK
-./gradlew :app:installDebug         # build and install to a connected device/emulator
-```
-
-60 unit tests currently pass across both modules.
-
-## Real-device testing
-
-[TESTING.md](TESTING.md) has the full walkthrough: device setup, the exact phrases to speak for
-every required positive/negative case, a settings-persistence check, and what to do if something
-doesn't work as expected.
-
-## Explicitly out of scope for v0.1
-
-No built-in Bible text or reader, no module downloads, no sermon/presentation tooling, no
-accounts, no backend, no AI interpretation, no always-on listening, no audio recording. This is a
-navigation layer, deliberately kept small.
