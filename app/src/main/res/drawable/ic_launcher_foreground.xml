@@ -1,0 +1,44 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <!-- open book -->
+        <path
+            android:fillColor="#FDF6E3"
+            android:pathData="M24,74 L52,67 L52,44 L20,50 Z" />
+        <path
+            android:fillColor="#FDF6E3"
+            android:pathData="M84,74 L56,67 L56,44 L88,50 Z" />
+        <path
+            android:fillColor="#E8B84B"
+            android:pathData="M52,44 L56,44 L56,74 L52,74 Z" />
+        <!-- microphone -->
+        <path
+            android:fillColor="#E8B84B"
+            android:pathData="M46,22 A8,8 0 0 1 54,14 A8,8 0 0 1 62,22 L62,32 A8,8 0 0 1 54,40 A8,8 0 0 1 46,32 Z" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E8B84B"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:pathData="M40,34 A14,14 0 0 0 68,34" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E8B84B"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:pathData="M54,44 L54,52" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E8B84B"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:pathData="M46,52 L62,52" />
+    </group>
+</vector>
