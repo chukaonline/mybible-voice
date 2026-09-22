@@ -2,6 +2,7 @@ package com.mybiblevoice
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -80,6 +81,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var screen by remember { mutableStateOf<Screen>(Screen.Main) }
+                    // Without this, system back on the Settings screen exits the whole
+                    // Activity instead of returning to Main - there's no back-stack entry
+                    // for internal Compose navigation state unless we intercept it ourselves.
+                    BackHandler(enabled = screen == Screen.Settings) { screen = Screen.Main }
                     when (screen) {
                         Screen.Main -> MainScreen(
                             viewModel = viewModel,
