@@ -3,15 +3,22 @@ package com.mybiblevoice.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,12 +26,20 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.mybiblevoice.data.settings.AppSettings
 import com.mybiblevoice.data.settings.ThemeMode
 import com.mybiblevoice.domain.translation.TranslationRegistry
+import com.mybiblevoice.holyrics.HolyricsBibleVersion
+import com.mybiblevoice.target.BibleTargetType
 
 private data class LanguageOption(val tag: String, val label: String)
 
@@ -40,9 +55,17 @@ private val SPEECH_LANGUAGE_OPTIONS = listOf(
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
+    holyricsSettingsState: HolyricsSettingsUiState,
     onSpeechLanguageChange: (String) -> Unit,
     onPreferredTranslationChange: (String?) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onTargetChange: (BibleTargetType) -> Unit,
+    onHolyricsHostChange: (String) -> Unit,
+    onHolyricsPortChange: (Int) -> Unit,
+    onHolyricsTokenChange: (String) -> Unit,
+    onHolyricsVersionMappingChange: (String, String?) -> Unit,
+    onTestHolyricsConnection: () -> Unit,
+    onLoadHolyricsVersions: () -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -58,6 +81,40 @@ fun SettingsScreen(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
+            item { SectionHeader("Bible target") }
+            items(BibleTargetType.entries.toList()) { target ->
+                SelectableRow(
+                    label = if (target == BibleTargetType.MYSWORD) "MySword" else "Holyrics",
+                    selected = settings.selectedTarget == target,
+                    onClick = { onTargetChange(target) }
+                )
+            }
+
+            if (settings.selectedTarget == BibleTargetType.HOLYRICS) {
+                item { HorizontalDivider() }
+                item {
+                    HolyricsConnectionSection(
+                        settings = settings,
+                        connectionState = holyricsSettingsState,
+                        onHostChange = onHolyricsHostChange,
+                        onPortChange = onHolyricsPortChange,
+                        onTokenChange = onHolyricsTokenChange,
+                        onTestConnection = onTestHolyricsConnection
+                    )
+                }
+
+                item { HorizontalDivider() }
+                item {
+                    HolyricsVersionMappingSection(
+                        settings = settings,
+                        versionsState = holyricsSettingsState,
+                        onLoadVersions = onLoadHolyricsVersions,
+                        onMappingChange = onHolyricsVersionMappingChange
+                    )
+                }
+            }
+
+            item { HorizontalDivider() }
             item { SectionHeader("Speech recognition language") }
             items(SPEECH_LANGUAGE_OPTIONS) { option ->
                 SelectableRow(
@@ -71,7 +128,7 @@ fun SettingsScreen(
             item { SectionHeader("Preferred translation") }
             item {
                 SelectableRow(
-                    label = "MySword default",
+                    label = "Target default",
                     selected = settings.preferredTranslationId == null,
                     onClick = { onPreferredTranslationChange(null) }
                 )
@@ -92,6 +149,121 @@ fun SettingsScreen(
                     selected = settings.themeMode == mode,
                     onClick = { onThemeModeChange(mode) }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HolyricsConnectionSection(
+    settings: AppSettings,
+    connectionState: HolyricsSettingsUiState,
+    onHostChange: (String) -> Unit,
+    onPortChange: (Int) -> Unit,
+    onTokenChange: (String) -> Unit,
+    onTestConnection: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        SectionHeader("Holyrics connection")
+
+        OutlinedTextField(
+            value = settings.holyricsHost,
+            onValueChange = onHostChange,
+            label = { Text("Host / IP") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = settings.holyricsPort.toString(),
+            onValueChange = { text -> text.toIntOrNull()?.let(onPortChange) },
+            label = { Text("Port") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = settings.holyricsToken,
+            onValueChange = onTokenChange,
+            label = { Text("API token") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = onTestConnection) { Text("Test Connection") }
+            Spacer(Modifier.width(12.dp))
+            when (val status = connectionState.connectionTestStatus) {
+                ConnectionTestStatus.Idle -> Unit
+                ConnectionTestStatus.Testing -> CircularProgressIndicator(modifier = Modifier.height(20.dp))
+                is ConnectionTestStatus.Success -> Text(status.message, color = MaterialTheme.colorScheme.primary)
+                is ConnectionTestStatus.Failure -> Text(status.message, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HolyricsVersionMappingSection(
+    settings: AppSettings,
+    versionsState: HolyricsSettingsUiState,
+    onLoadVersions: () -> Unit,
+    onMappingChange: (String, String?) -> Unit
+) {
+    var expandedTranslationId by remember { mutableStateOf<String?>(null) }
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        SectionHeader("Bible version mappings")
+        Button(onClick = onLoadVersions) { Text("Discover Holyrics Bible versions") }
+        Spacer(Modifier.height(8.dp))
+
+        if (versionsState.isLoadingVersions) {
+            CircularProgressIndicator(modifier = Modifier.height(20.dp))
+        }
+        versionsState.versionsError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
+
+        if (versionsState.availableVersions.isNotEmpty()) {
+            TranslationRegistry.translations.forEach { translation ->
+                val mappedVersionId = settings.holyricsVersionMappings[translation.id]
+                val mappedTitle = versionsState.availableVersions
+                    .firstOrNull { it.id == mappedVersionId }?.title
+                    ?: mappedVersionId
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            expandedTranslationId =
+                                if (expandedTranslationId == translation.id) null else translation.id
+                        }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(translation.name, modifier = Modifier.fillMaxWidth().padding(end = 8.dp))
+                }
+                Text(
+                    mappedTitle ?: "Not mapped",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (expandedTranslationId == translation.id) {
+                    SelectableRow(
+                        label = "Not mapped",
+                        selected = mappedVersionId == null,
+                        onClick = { onMappingChange(translation.id, null) }
+                    )
+                    versionsState.availableVersions.forEach { version: HolyricsBibleVersion ->
+                        SelectableRow(
+                            label = version.title,
+                            selected = mappedVersionId == version.id,
+                            onClick = { onMappingChange(translation.id, version.id) }
+                        )
+                    }
+                }
+                HorizontalDivider()
             }
         }
     }

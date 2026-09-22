@@ -10,10 +10,15 @@ import com.mybiblevoice.domain.bible.BibleReference
 import com.mybiblevoice.domain.bible.BibleReferenceParser
 import com.mybiblevoice.domain.parser.ParserResult
 import com.mybiblevoice.domain.translation.TranslationRegistry
-import com.mybiblevoice.mysword.LaunchResult
-import com.mybiblevoice.mysword.MySwordLauncher
+import com.mybiblevoice.holyrics.HolyricsApi
+import com.mybiblevoice.holyrics.HolyricsConnectionConfig
+import com.mybiblevoice.holyrics.HolyricsResult
+import com.mybiblevoice.holyrics.HolyricsVersionRepository
 import com.mybiblevoice.speech.SpeechRecognizer
 import com.mybiblevoice.speech.SpeechState
+import com.mybiblevoice.target.BibleTarget
+import com.mybiblevoice.target.BibleTargetType
+import com.mybiblevoice.target.TargetResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,18 +28,24 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Coordinates the core workflow without embedding parsing or Android Intent details
- * (SRS section 13): startListening -> SpeechRecognizer -> recognized text ->
- * BibleReferenceParser -> MySwordLauncher -> MainUiState.
+ * Coordinates the core workflow without embedding parsing, Android Intent, or Holyrics HTTP
+ * details (SRS section 13; extended by the Holyrics integration design section 19):
+ * startListening -> SpeechRecognizer -> recognized text -> BibleReferenceParser ->
+ * selected BibleTarget -> MainUiState.
  */
 class MainViewModel(
     private val speechRecognizer: SpeechRecognizer,
-    private val mySwordLauncher: MySwordLauncher,
-    private val settingsRepository: SettingsRepository
+    private val targets: Map<BibleTargetType, BibleTarget>,
+    private val settingsRepository: SettingsRepository,
+    private val holyricsApi: HolyricsApi,
+    private val holyricsVersionRepository: HolyricsVersionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    private val _holyricsSettingsUiState = MutableStateFlow(HolyricsSettingsUiState())
+    val holyricsSettingsUiState: StateFlow<HolyricsSettingsUiState> = _holyricsSettingsUiState.asStateFlow()
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
@@ -62,7 +73,68 @@ class MainViewModel(
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
-    private fun handleSpeechState(speechState: SpeechState) {
+    fun onTargetChanged(target: BibleTargetType) {
+        viewModelScope.launch { settingsRepository.setSelectedTarget(target) }
+    }
+
+    fun onHolyricsHostChanged(host: String) {
+        viewModelScope.launch { settingsRepository.setHolyricsHost(host) }
+    }
+
+    fun onHolyricsPortChanged(port: Int) {
+        viewModelScope.launch { settingsRepository.setHolyricsPort(port) }
+    }
+
+    fun onHolyricsTokenChanged(token: String) {
+        viewModelScope.launch { settingsRepository.setHolyricsToken(token) }
+    }
+
+    fun onHolyricsVersionMappingChanged(translationId: String, holyricsVersionId: String?) {
+        viewModelScope.launch { settingsRepository.setHolyricsVersionMapping(translationId, holyricsVersionId) }
+    }
+
+    /** Side-effect-free per design section 12 - never presents a verse, just proves the
+     *  configured host/port/token actually work. */
+    fun testHolyricsConnection() {
+        viewModelScope.launch {
+            _holyricsSettingsUiState.update { it.copy(connectionTestStatus = ConnectionTestStatus.Testing) }
+            val result = holyricsApi.getTokenInfo(currentHolyricsConfig())
+            _holyricsSettingsUiState.update {
+                it.copy(
+                    connectionTestStatus = when (result) {
+                        is HolyricsResult.Success ->
+                            ConnectionTestStatus.Success("Connected - Holyrics v${result.value.holyricsVersion}")
+                        is HolyricsResult.Failure -> ConnectionTestStatus.Failure(result.error.message)
+                    }
+                )
+            }
+        }
+    }
+
+    fun loadHolyricsVersions() {
+        viewModelScope.launch {
+            _holyricsSettingsUiState.update { it.copy(isLoadingVersions = true, versionsError = null) }
+            val result = holyricsVersionRepository.fetchAvailableVersions(currentHolyricsConfig())
+            _holyricsSettingsUiState.update {
+                it.copy(
+                    isLoadingVersions = false,
+                    availableVersions = result.getOrDefault(emptyList()),
+                    versionsError = result.exceptionOrNull()?.message
+                )
+            }
+        }
+    }
+
+    private fun currentHolyricsConfig(): HolyricsConnectionConfig {
+        val current = settings.value
+        return HolyricsConnectionConfig(
+            host = current.holyricsHost,
+            port = current.holyricsPort,
+            token = current.holyricsToken
+        )
+    }
+
+    private suspend fun handleSpeechState(speechState: SpeechState) {
         when (speechState) {
             SpeechState.Idle -> _uiState.update { it.copy(status = ListeningStatus.IDLE) }
             SpeechState.Listening -> _uiState.update {
@@ -76,7 +148,7 @@ class MainViewModel(
         }
     }
 
-    private fun handleRecognizedText(text: String) {
+    private suspend fun handleRecognizedText(text: String) {
         _uiState.update {
             it.copy(status = ListeningStatus.IDLE, recognizedText = text, errorMessage = null)
         }
@@ -84,7 +156,7 @@ class MainViewModel(
             is ParserResult.Success -> {
                 val reference = applyPreferredTranslationIfUnspoken(result.reference)
                 _uiState.update { it.copy(lastSuccessfulReference = reference) }
-                launchMySword(reference)
+                dispatchToSelectedTarget(reference)
             }
             is ParserResult.Ambiguous -> _uiState.update { it.copy(ambiguousMessage = result.message) }
             is ParserResult.Invalid -> _uiState.update { it.copy(errorMessage = result.message) }
@@ -104,21 +176,11 @@ class MainViewModel(
         return reference.copy(translation = preferred)
     }
 
-    private fun launchMySword(reference: BibleReference) {
-        when (val launchResult = mySwordLauncher.open(reference)) {
-            is LaunchResult.Launched -> _uiState.update {
-                it.copy(
-                    launchNote = if (launchResult.exactPassage) {
-                        null
-                    } else {
-                        "Opened MySword, but could not navigate to the exact passage on this MySword version."
-                    }
-                )
-            }
-            LaunchResult.NotInstalled -> _uiState.update {
-                it.copy(errorMessage = "MySword is required but is not installed.")
-            }
-            is LaunchResult.Failed -> _uiState.update { it.copy(errorMessage = launchResult.reason) }
+    private suspend fun dispatchToSelectedTarget(reference: BibleReference) {
+        val target = targets.getValue(settings.value.selectedTarget)
+        when (val result = target.open(reference)) {
+            is TargetResult.Success -> _uiState.update { it.copy(launchNote = result.warning) }
+            is TargetResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.message) }
         }
     }
 
@@ -130,11 +192,13 @@ class MainViewModel(
 
 class MainViewModelFactory(
     private val speechRecognizer: SpeechRecognizer,
-    private val mySwordLauncher: MySwordLauncher,
-    private val settingsRepository: SettingsRepository
+    private val targets: Map<BibleTargetType, BibleTarget>,
+    private val settingsRepository: SettingsRepository,
+    private val holyricsApi: HolyricsApi,
+    private val holyricsVersionRepository: HolyricsVersionRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return MainViewModel(speechRecognizer, mySwordLauncher, settingsRepository) as T
+        return MainViewModel(speechRecognizer, targets, settingsRepository, holyricsApi, holyricsVersionRepository) as T
     }
 }

@@ -160,6 +160,22 @@ class HolyricsApiClientTest {
     }
 
     @Test
+    fun `malformed host fails as a Configuration error instead of crashing`() {
+        // Regression test: a mistyped/garbled host (e.g. "92.161..99te1toktn231a9a.162.1.99")
+        // made OkHttp's Request.Builder().url() throw IllegalArgumentException, which was
+        // thrown outside the try/catch that only caught IOException - crashing the app
+        // instead of surfacing a Configuration error.
+        runBlocking {
+            val result = client.showVerse(
+                config.copy(host = "92.161..99te1toktn231a9a.162.1.99"),
+                ShowVerseRequest(references = "John 3:16")
+            )
+            assertIs<HolyricsResult.Failure>(result)
+            assertIs<TargetError.Configuration>(result.error)
+        }
+    }
+
+    @Test
     fun `blank host fails validation without making an HTTP call`() {
         runBlocking {
             val result = client.showVerse(

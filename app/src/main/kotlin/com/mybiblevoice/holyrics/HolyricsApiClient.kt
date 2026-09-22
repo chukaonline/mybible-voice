@@ -81,10 +81,19 @@ class HolyricsApiClient(
         validateConfig(config)?.let { return@withContext HolyricsResult.Failure(it) }
 
         val url = "http://${config.host}:${config.port}/api/$action?token=${config.token}"
-        val httpRequest = Request.Builder()
-            .url(url)
-            .post(body.toString().toRequestBody(jsonMediaType))
-            .build()
+        // Request.Builder().url() throws IllegalArgumentException for a malformed host
+        // (e.g. a mistyped IP) - this is a bad-input/Configuration problem, not a
+        // Network one, and must never escape as an uncaught crash.
+        val httpRequest = try {
+            Request.Builder()
+                .url(url)
+                .post(body.toString().toRequestBody(jsonMediaType))
+                .build()
+        } catch (e: IllegalArgumentException) {
+            return@withContext HolyricsResult.Failure(
+                TargetError.Configuration("Holyrics host/IP or port is invalid.")
+            )
+        }
 
         try {
             httpClient.newCall(httpRequest).execute().use { response ->
