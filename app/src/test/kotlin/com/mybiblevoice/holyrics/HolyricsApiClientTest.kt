@@ -49,6 +49,10 @@ class HolyricsApiClientTest {
             assertEquals("POST", request.method)
             assertEquals("/api/ShowVerse?token=abc123", request.path)
             assertEquals("""{"references":"John 3:16"}""", request.body.readUtf8())
+            // Regression: Holyrics does exact Content-Type matching and rejects
+            // "application/json; charset=utf-8" (which String.toRequestBody adds
+            // automatically) with HTTP 415 - confirmed against a real installation.
+            assertEquals("application/json", request.getHeader("Content-Type"))
         }
     }
 

@@ -87,7 +87,13 @@ class HolyricsApiClient(
         val httpRequest = try {
             Request.Builder()
                 .url(url)
-                .post(body.toString().toRequestBody(jsonMediaType))
+                // Deliberately NOT String.toRequestBody(jsonMediaType): that overload rewrites
+                // the content type to "application/json; charset=utf-8" whenever the given
+                // MediaType has no charset of its own. Holyrics does exact Content-Type
+                // matching and rejects that with HTTP 415 - confirmed against a real
+                // installation. Encoding to bytes ourselves keeps the header exactly
+                // "application/json".
+                .post(body.toString().toByteArray(Charsets.UTF_8).toRequestBody(jsonMediaType))
                 .build()
         } catch (e: IllegalArgumentException) {
             return@withContext HolyricsResult.Failure(
