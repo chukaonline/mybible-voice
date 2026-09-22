@@ -87,6 +87,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    // Local JVM unit tests run against Android's stub jar, where org.json.* throws
+    // "Stub!" - this Maven-hosted artifact provides a real implementation of the same
+    // classes for tests only; the actual device uses the real platform implementation.
+    testImplementation("org.json:json:20240303")
 }

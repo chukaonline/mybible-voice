@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Package visibility (Android 11+): needed to detect/launch MySword and to use
          on-device speech recognition services. -->
@@ -12,12 +13,17 @@
         </intent>
     </queries>
 
+    <!-- Holyrics' local-network API Server is plain http:// with a user-entered LAN IP (no
+         fixed domain to scope a network-security-config allowlist to), so cleartext is
+         permitted at the app level - consistent with the design's "trusted local network"
+         assumption (SRS section 5.3). -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:theme="@style/Theme.MyBibleVoice">
+        android:theme="@style/Theme.MyBibleVoice"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true">
