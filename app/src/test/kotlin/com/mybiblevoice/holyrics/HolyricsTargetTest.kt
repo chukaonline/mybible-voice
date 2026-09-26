@@ -30,6 +30,9 @@ class HolyricsTargetTest {
 
         override suspend fun getTokenInfo(config: HolyricsConnectionConfig) =
             HolyricsResult.Success(HolyricsTokenInfo("2.25.0", emptyList()))
+
+        override suspend fun actionNext(config: HolyricsConnectionConfig) = HolyricsResult.Success(Unit)
+        override suspend fun actionPrevious(config: HolyricsConnectionConfig) = HolyricsResult.Success(Unit)
     }
 
     // Block bodies (not "= runBlocking { ... }") on purpose: if the last statement inside

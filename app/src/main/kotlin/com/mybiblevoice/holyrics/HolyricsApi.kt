@@ -10,4 +10,11 @@ interface HolyricsApi {
     /** Lightweight, side-effect-free call used for Test Connection - proves the host/port are
      *  reachable and the token is valid without touching the public presentation. */
     suspend fun getTokenInfo(config: HolyricsConnectionConfig): HolyricsResult<HolyricsTokenInfo>
+
+    /** Generic "next/back" remote-control commands on whatever Holyrics currently has open -
+     *  not specific to Bible verses (confirmed against the official documentation, github.com/
+     *  holyrics/API-Server): there is no dedicated "next verse" action, so these only make sense
+     *  right after a [showVerse] call put a verse presentation on screen. */
+    suspend fun actionNext(config: HolyricsConnectionConfig): HolyricsResult<Unit>
+    suspend fun actionPrevious(config: HolyricsConnectionConfig): HolyricsResult<Unit>
 }

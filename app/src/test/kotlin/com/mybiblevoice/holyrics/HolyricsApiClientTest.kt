@@ -57,6 +57,36 @@ class HolyricsApiClientTest {
     }
 
     @Test
+    fun `actionNext hits the documented endpoint with an empty body`() {
+        runBlocking {
+            server.enqueue(MockResponse().setBody("""{"status":"ok"}"""))
+
+            val result = client.actionNext(config)
+            assertIs<HolyricsResult.Success<Unit>>(result)
+
+            val request = server.takeRequest()
+            assertEquals("POST", request.method)
+            assertEquals("/api/ActionNext?token=abc123", request.path)
+            assertEquals("{}", request.body.readUtf8())
+        }
+    }
+
+    @Test
+    fun `actionPrevious hits the documented endpoint with an empty body`() {
+        runBlocking {
+            server.enqueue(MockResponse().setBody("""{"status":"ok"}"""))
+
+            val result = client.actionPrevious(config)
+            assertIs<HolyricsResult.Success<Unit>>(result)
+
+            val request = server.takeRequest()
+            assertEquals("POST", request.method)
+            assertEquals("/api/ActionPrevious?token=abc123", request.path)
+            assertEquals("{}", request.body.readUtf8())
+        }
+    }
+
+    @Test
     fun `getBibleVersions parses the documented response shape`() {
         runBlocking {
             server.enqueue(

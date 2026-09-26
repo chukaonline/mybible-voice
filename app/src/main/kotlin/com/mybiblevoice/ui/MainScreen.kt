@@ -6,11 +6,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,11 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.mybiblevoice.target.BibleTargetType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     var permissionDenied by remember { mutableStateOf(false) }
 
@@ -81,6 +87,19 @@ fun MainScreen(viewModel: MainViewModel, onOpenSettings: () -> Unit) {
                 }
             }) {
                 Text("🎤 Tap to Speak")
+            }
+
+            if (settings.selectedTarget == BibleTargetType.HOLYRICS) {
+                Spacer(Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = viewModel::onPreviousVerse) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous verse")
+                    }
+                    Spacer(Modifier.width(32.dp))
+                    IconButton(onClick = viewModel::onNextVerse) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next verse")
+                    }
+                }
             }
 
             Spacer(Modifier.height(24.dp))

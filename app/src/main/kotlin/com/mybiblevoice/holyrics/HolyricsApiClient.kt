@@ -63,6 +63,12 @@ class HolyricsApiClient(
             )
         }
 
+    override suspend fun actionNext(config: HolyricsConnectionConfig): HolyricsResult<Unit> =
+        execute(config, "ActionNext", JSONObject()) { }
+
+    override suspend fun actionPrevious(config: HolyricsConnectionConfig): HolyricsResult<Unit> =
+        execute(config, "ActionPrevious", JSONObject()) { }
+
     private fun validateConfig(config: HolyricsConnectionConfig): TargetError.Configuration? {
         return when {
             config.host.isBlank() -> TargetError.Configuration("Holyrics host/IP is not configured.")

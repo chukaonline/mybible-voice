@@ -111,6 +111,27 @@ class MainViewModel(
         }
     }
 
+    /** Manual "next/previous verse" navigation (SRS: voice picks the starting verse, these
+     *  buttons step through consecutive verses from there) - Holyrics-only, since MySword is a
+     *  separate app we merely launch and has no equivalent remote-control API. */
+    fun onNextVerse() {
+        viewModelScope.launch {
+            when (val result = holyricsApi.actionNext(currentHolyricsConfig())) {
+                is HolyricsResult.Success -> _uiState.update { it.copy(errorMessage = null) }
+                is HolyricsResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.message) }
+            }
+        }
+    }
+
+    fun onPreviousVerse() {
+        viewModelScope.launch {
+            when (val result = holyricsApi.actionPrevious(currentHolyricsConfig())) {
+                is HolyricsResult.Success -> _uiState.update { it.copy(errorMessage = null) }
+                is HolyricsResult.Failure -> _uiState.update { it.copy(errorMessage = result.error.message) }
+            }
+        }
+    }
+
     fun loadHolyricsVersions() {
         viewModelScope.launch {
             _holyricsSettingsUiState.update { it.copy(isLoadingVersions = true, versionsError = null) }
