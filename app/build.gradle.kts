@@ -88,6 +88,9 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Embedded QR scanner (own Activity, no manual camera preview code needed) for the
+    // optional "Scan Holyrics QR code" shortcut in Settings.
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")

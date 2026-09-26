@@ -3,6 +3,10 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Only for the optional "Scan Holyrics QR code" shortcut in Settings; manual entry
+         of host/port/token works fine without it. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Package visibility (Android 11+): needed to detect/launch MySword and to use
          on-device speech recognition services. -->

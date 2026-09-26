@@ -1,5 +1,6 @@
 package com.mybiblevoice.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,7 +40,10 @@ import com.mybiblevoice.data.settings.AppSettings
 import com.mybiblevoice.data.settings.ThemeMode
 import com.mybiblevoice.domain.translation.TranslationRegistry
 import com.mybiblevoice.holyrics.HolyricsBibleVersion
+import com.mybiblevoice.holyrics.parseHolyricsQrPayload
 import com.mybiblevoice.target.BibleTargetType
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 
 private data class LanguageOption(val tag: String, val label: String)
 
@@ -163,27 +167,82 @@ private fun HolyricsConnectionSection(
     onTokenChange: (String) -> Unit,
     onTestConnection: () -> Unit
 ) {
+    // Local, editable copies - seeded once from `settings` and never overwritten by it again
+    // while this section stays composed. Binding the fields directly to `settings.holyricsHost`
+    // (etc.) made every keystroke wait on an async DataStore write-then-re-read before the
+    // field would show it; when that echo landed out of order mid-typing it could scramble/
+    // reverse what the user had just entered. Typing now only updates this local state -
+    // persistence still happens via onHostChange/onPortChange/onTokenChange, it just no longer
+    // drives what's rendered.
+    var hostText by remember { mutableStateOf(settings.holyricsHost) }
+    var portText by remember { mutableStateOf(settings.holyricsPort.toString()) }
+    var tokenText by remember { mutableStateOf(settings.holyricsToken) }
+    var qrError by remember { mutableStateOf<String?>(null) }
+
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        val raw = result.contents ?: return@rememberLauncherForActivityResult
+        val parsed = parseHolyricsQrPayload(raw)
+        if (parsed == null) {
+            qrError = "Could not read Holyrics connection details from that QR code."
+        } else {
+            qrError = null
+            hostText = parsed.host
+            portText = parsed.port.toString()
+            tokenText = parsed.token
+            onHostChange(parsed.host)
+            onPortChange(parsed.port)
+            onTokenChange(parsed.token)
+        }
+    }
+
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         SectionHeader("Holyrics connection")
 
+        Button(
+            onClick = {
+                qrError = null
+                scanLauncher.launch(
+                    ScanOptions()
+                        .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                        .setPrompt("Scan the QR code from Holyrics' API Server settings")
+                        .setBeepEnabled(false)
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Scan Holyrics QR code") }
+        qrError?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(8.dp))
+
         OutlinedTextField(
-            value = settings.holyricsHost,
-            onValueChange = onHostChange,
+            value = hostText,
+            onValueChange = {
+                hostText = it
+                onHostChange(it)
+            },
             label = { Text("Host / IP") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = settings.holyricsPort.toString(),
-            onValueChange = { text -> text.toIntOrNull()?.let(onPortChange) },
+            value = portText,
+            onValueChange = { text ->
+                portText = text
+                text.toIntOrNull()?.let(onPortChange)
+            },
             label = { Text("Port") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = settings.holyricsToken,
-            onValueChange = onTokenChange,
+            value = tokenText,
+            onValueChange = {
+                tokenText = it
+                onTokenChange(it)
+            },
             label = { Text("API token") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
@@ -202,6 +261,7 @@ private fun HolyricsConnectionSection(
         }
     }
 }
+
 
 @Composable
 private fun HolyricsVersionMappingSection(
