@@ -64,10 +64,21 @@ class HolyricsApiClient(
         }
 
     override suspend fun actionNext(config: HolyricsConnectionConfig): HolyricsResult<Unit> =
-        execute(config, "ActionNext", JSONObject()) { }
+        execute(config, "ActionNext", JSONObject(), authFailureMessage = presentationControlPermissionMessage) { }
 
     override suspend fun actionPrevious(config: HolyricsConnectionConfig): HolyricsResult<Unit> =
-        execute(config, "ActionPrevious", JSONObject()) { }
+        execute(config, "ActionPrevious", JSONObject(), authFailureMessage = presentationControlPermissionMessage) { }
+
+    // Holyrics grants permissions per action per token (its "manage permissions" screen), so a
+    // token that already works for ShowVerse can still be refused for ActionNext/ActionPrevious
+    // specifically - the generic "rejected the configured credentials" message is misleading
+    // here since it reads as "the token is wrong" when it's really "this token lacks a specific
+    // permission," confirmed by real-device testing where the same token worked for everything
+    // except these two actions.
+    private val presentationControlPermissionMessage =
+        "Holyrics rejected this request. Your API token likely doesn't have the " +
+            "\"presentation control\" (Next/Previous) permission enabled - check its permissions " +
+            "in Holyrics' API Server settings."
 
     private fun validateConfig(config: HolyricsConnectionConfig): TargetError.Configuration? {
         return when {
@@ -82,6 +93,7 @@ class HolyricsApiClient(
         config: HolyricsConnectionConfig,
         action: String,
         body: JSONObject,
+        authFailureMessage: String = "Holyrics rejected the configured credentials.",
         parseData: (Any?) -> T
     ): HolyricsResult<T> = withContext(Dispatchers.IO) {
         validateConfig(config)?.let { return@withContext HolyricsResult.Failure(it) }
@@ -111,7 +123,7 @@ class HolyricsApiClient(
             httpClient.newCall(httpRequest).execute().use { response ->
                 if (response.code == 401 || response.code == 403) {
                     return@withContext HolyricsResult.Failure(
-                        TargetError.Authentication("Holyrics rejected the configured credentials.")
+                        TargetError.Authentication(authFailureMessage)
                     )
                 }
 

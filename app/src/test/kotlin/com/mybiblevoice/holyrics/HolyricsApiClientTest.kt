@@ -87,6 +87,34 @@ class HolyricsApiClientTest {
     }
 
     @Test
+    fun `actionNext 401 points at the presentation-control permission, not a generic bad-token message`() {
+        // Regression: Holyrics grants permissions per action per token, so a token that already
+        // works for ShowVerse can still be refused here - confirmed on a real installation. The
+        // generic "rejected the configured credentials" wording (still used elsewhere) would
+        // wrongly suggest the whole token is invalid.
+        runBlocking {
+            server.enqueue(MockResponse().setResponseCode(401))
+
+            val result = client.actionNext(config)
+            assertIs<HolyricsResult.Failure>(result)
+            val error = assertIs<TargetError.Authentication>(result.error)
+            assertEquals(true, error.message.contains("permission", ignoreCase = true))
+        }
+    }
+
+    @Test
+    fun `actionPrevious 401 points at the presentation-control permission`() {
+        runBlocking {
+            server.enqueue(MockResponse().setResponseCode(401))
+
+            val result = client.actionPrevious(config)
+            assertIs<HolyricsResult.Failure>(result)
+            val error = assertIs<TargetError.Authentication>(result.error)
+            assertEquals(true, error.message.contains("permission", ignoreCase = true))
+        }
+    }
+
+    @Test
     fun `getBibleVersions parses the documented response shape`() {
         runBlocking {
             server.enqueue(
