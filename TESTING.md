@@ -128,6 +128,51 @@ app on first successful recognition, speech-transcribed ordinals ("1st Corinthia
 matching the book registry, and the preferred-translation setting being silently ignored by
 MySword's numeric URI form. All three have regression tests.
 
+## 9. Holyrics real-device testing
+
+Everything above covers MySword. Holyrics is a separate presentation target reached over the
+local network rather than an on-device Intent, so it needs its own real-device pass — an
+emulator can fake the HTTP calls but can't prove the app talks to an actual Holyrics install.
+
+### Prerequisites
+
+- A Windows PC on the same Wi-Fi/LAN as the phone, running Holyrics with the API Server enabled
+  (Holyrics settings -> API Server -> Enable, note the port and API token, or use its QR code).
+- The phone's Wi-Fi must be able to reach that PC's IP — corporate/guest networks that isolate
+  clients from each other will block this even though both are "connected."
+
+### Setup
+
+In Settings, select **Holyrics** as the Bible target, then either:
+- Tap **Scan Holyrics QR code** and scan the QR code from Holyrics' own API Server settings
+  screen, or
+- Enter the host/IP, port, and API token shown there by hand.
+
+Tap **Test Connection** and confirm it reports the Holyrics version rather than an error. Then
+tap **Discover Holyrics Bible versions** and map at least one translation you plan to test with
+(e.g. map NKJV to whatever Holyrics calls its NKJV-equivalent version) — a translation with no
+mapping is expected to fail explicitly rather than substitute a different one.
+
+### Test matrix (design section 23.4)
+
+| Say this | Expect |
+|---|---|
+| "John three sixteen" | Holyrics presents John 3:16 |
+| "First Corinthians thirteen four" | Holyrics presents 1 Corinthians 13:4 (numbered-book path) |
+| "John three sixteen" with a translation you did NOT map | Clear "translation unavailable" error, no presentation, no silent substitution |
+| Turn off the Holyrics PC (or its API Server) and speak a reference | Network-failure message, no crash |
+| Configure a wrong token in Settings and speak a reference | Authentication-failure message, no crash, and — check logcat — the token itself never appears in any log line or error message |
+
+Verse ranges (e.g. "John 3:16-18") are supported by the reference mapper but not required for
+Holyrics use and are not part of this matrix.
+
+### Status
+
+**Verified 2026-09-26** against a real Holyrics installation over Wi-Fi: connection test,
+version discovery, version mapping (persisted and applied), single-verse and numbered-book
+presentation, and the QR-code connection-setup shortcut all passing. Verse-range presentation
+was explicitly descoped as not required.
+
 ## If something fails
 
 - **Nothing happens after "Listening…"**: check the phone actually has a working speech
