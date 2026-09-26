@@ -24,9 +24,10 @@ and install it on your Android phone.
 
 ## Status
 
-**v0.1 complete**, verified end-to-end on real Android devices — positive references, negative/
-error cases, settings persistence, and (for Holyrics) live connection/version-discovery/verse
-display against a real Holyrics installation all passing.
+**v0.2.0**, verified end-to-end on real Android devices — positive references, negative/error
+cases, settings persistence, and (for Holyrics) live connection/version-discovery/verse display,
+QR-code connection setup, and Next/Previous verse navigation against a real Holyrics
+installation all passing.
 
 ## How it works
 
